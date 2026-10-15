@@ -37,6 +37,7 @@
     const x = (i) => PAD.left + (i / (n - 1)) * (W - PAD.left - PAD.right);
     const y = (v) => PAD.top + (1 - (v - min) / (max - min)) * (H - PAD.top - PAD.bottom);
     const format = opts.format || SH.compact;
+    const xLabel = opts.xFormat || SH.shortDate; // dates by default; the intraday chart passes times
     const svg = h("svg:svg", { viewBox: `0 0 ${W} ${H}`, class: "chart", role: "img", "aria-label": opts.label || "chart" });
 
     for (let k = 0; k <= 4; k++) {
@@ -48,7 +49,7 @@
     for (let k = 0; k < ticks; k++) {
       const i = Math.round((k / (ticks - 1)) * (n - 1));
       const anchor = k === 0 ? "start" : k === ticks - 1 ? "end" : "middle";
-      svg.appendChild(h("svg:text", { x: x(i), y: H - 6, class: "axis", "text-anchor": anchor }, SH.shortDate(opts.dates[i])));
+      svg.appendChild(h("svg:text", { x: x(i), y: H - 6, class: "axis", "text-anchor": anchor }, xLabel(opts.dates[i])));
     }
     (opts.guides || []).forEach((g) => {
       svg.appendChild(h("svg:line", { x1: PAD.left, x2: W - PAD.right, y1: y(g.value), y2: y(g.value), class: "guide" }));

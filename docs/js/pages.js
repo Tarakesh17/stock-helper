@@ -13,6 +13,9 @@
   const external = (href, text) => h("a", { href, target: "_blank", rel: "noopener noreferrer" }, text);
   const addLink = (symbol, text) => h("a", { class: "small", href: "#/watchlist?add=" + encodeURIComponent(symbol) }, text);
   const best = (r) => Math.max(...[r.always_up_pct, r.always_down_pct, r.same_as_today_pct].filter((v) => v != null));
+  const repoOf = (data) => (/^[\w.-]+\/[\w.-]+$/.test(data.site.repo) ? data.site.repo : "Tarakesh17/stock-helper");
+  const liveTag = (q) => h("span", { class: "live-tag" }, h("span", { class: "live-dot", "aria-hidden": "true" }),
+    (SH.live && SH.live.market === "open" ? "Live " : "Last trade ") + q.time);
 
   function problems(data) {
     const items = (data.issues || []).concat((data.failed || []).map((f) => f.symbol + ": " + f.error));
@@ -24,19 +27,27 @@
   // ================================================================ overview
   pages.overview = function (data) {
     const cards = data.stocks.map((s) => {
+      const q = SH.liveQuote(s.symbol); // today's live price, when the market is trading
+      const price = q ? q.price : s.price;
+      const change = q ? q.change_pct : s.change_pct;
+      const ifNow = q && q.signal && q.official && q.signal !== q.official ? q.signal : null;
       const was = s.prev_signal && s.prev_signal !== s.signal ? " · was " + s.prev_signal : "";
+      const line = q && q.path.length > 1 ? q.path.map((p) => p[1]) : s.series.close.slice(-60);
       return h("a", { class: "card stock-card", href: SH.stockHref(s.symbol) },
         h("div", { class: "row" }, h("strong", { class: "sym" }, SH.short(s.symbol)), SH.badge(s.signal)),
         h("div", { class: "name muted" }, s.name),
-        h("div", { class: "row" }, h("span", { class: "price" }, SH.money(s.price)),
-          h("span", { class: "chg " + SH.signClass(s.change_pct) }, SH.pct(s.change_pct))),
-        SH.sparkline(s.series.close.slice(-60), SH.signClass(s.change_pct)),
+        h("div", { class: "row" }, h("span", { class: "price" }, SH.money(price)),
+          h("span", { class: "chg " + SH.signClass(change) }, SH.pct(change))),
+        q ? h("div", { class: "meta" }, liveTag(q), " · today's line") : null,
+        SH.sparkline(line, SH.signClass(change)),
         h("div", { class: "meta" }, "RSI " + SH.num(s.rsi, 1) + " · up-chance " + SH.chance(s.p_up)),
-        h("div", { class: "meta muted" }, "Signal since " + SH.date(s.signal_since) + was));
+        h("div", { class: "meta muted" }, "Signal since " + SH.date(s.signal_since) + was),
+        ifNow ? h("div", { class: "meta provisional" }, "If it closed now: ", SH.badge(ifNow), " (provisional)") : null);
     });
     return [
       problems(data),
       h("h1", null, "Signals"),
+      indexStrip(),
       cards.length ? h("div", { class: "cards" }, cards) : SH.empty("No stocks yet. Add some on the Watchlist page."),
       copyBox(data),
       h("div", { class: "strips" }, agentsStrip(data), modelStrip(data)),
@@ -53,6 +64,14 @@
       () => { status.textContent = "Copy didn't work here: select the text below instead"; }));
     return h("div", { class: "copy" }, button, " ", status,
       h("details", null, h("summary", null, "Show the text"), h("pre", null, text)));
+  }
+
+  function indexStrip() {
+    const q = SH.live && SH.live.index;
+    if (!q || q.date < SH.data.as_of) return null;
+    return h("div", { class: "strip" }, h("strong", null, "NIFTY 50"),
+      h("span", null, SH.num(q.price) + " ", h("span", { class: "chg " + SH.signClass(q.change_pct) }, SH.pct(q.change_pct))),
+      liveTag(q));
   }
 
   function agentsStrip(data) {
@@ -115,6 +134,7 @@
         h("p", { class: "muted" }, s.name + " · " + s.symbol),
         h("p", { class: "big" }, SH.money(s.price), " ", h("span", { class: "chg " + SH.signClass(s.change_pct) }, SH.pct(s.change_pct))),
         h("p", { class: "muted" }, "Signal " + s.signal + " since " + SH.date(s.signal_since) + was + " · data " + SH.date(s.date) + (s.final ? "" : " (not final)"))),
+      todayCard(s),
       card("Price", price, note("Triangles mark where the rule switched to BUY (up) or SELL (down). Tap or hover for values.")),
       card("RSI (" + cfg.rsi_period + ")", rsi, note("Above " + cfg.rsi_overbought + " the rule calls SELL (overbought); 30 is the usual oversold line.")),
       card("Model up-chance", chance, note("The model's chance that the next close is higher, as it stood each day. 50% = no idea.")),
@@ -134,6 +154,27 @@
       stockDealsCard(s),
     ];
   };
+
+  function todayCard(s) {
+    const q = SH.liveQuote(s.symbol);
+    if (!q) return null;
+    const changed = q.signal && q.official && q.signal !== q.official;
+    return card("Today",
+      h("p", null, liveTag(q), " · ", h("strong", null, SH.money(q.price)), " ",
+        h("span", { class: "chg " + SH.signClass(q.change_pct) }, SH.pct(q.change_pct)),
+        q.low != null && q.high != null ? " · day range " + SH.money(q.low) + " – " + SH.money(q.high) : ""),
+      changed
+        ? h("div", { class: "banner info" }, "If the market closed now, the rule would say ", SH.badge(q.signal), " instead of ",
+          SH.badge(q.official), ". This is provisional: the official signal comes after the close.")
+        : h("p", { class: "muted" }, "At this price the rule's signal stays " + (q.signal || s.signal) + "."),
+      q.path.length > 1 ? SH.lineChart({
+        label: "Today's price", dates: q.path.map((p) => p[0]), xFormat: (t) => t, height: 160, legend: false,
+        series: [{ name: "Price", values: q.path.map((p) => p[1]), cls: "s-close" }],
+        guides: q.prev_close ? [{ value: q.prev_close }] : [],
+        tooltip: (i) => [q.path[i][0], SH.money(q.path[i][1])],
+      }) : null,
+      note("Updated every 15 minutes in market hours, so it can lag by a few minutes. Dashed line: yesterday's close."));
+  }
 
   function backtestCard(b, cfg) {
     if (!b) return card("Rule vs buy & hold", SH.empty("Not enough history yet."));
@@ -210,8 +251,7 @@
 
   pages.holdings = function (data) {
     const pattern = new RegExp(data.config.symbol_pattern);
-    const prices = {};
-    data.stocks.forEach((s) => { prices[s.symbol] = s; });
+    const repo = repoOf(data);
     const stored = SH.store.get(HOLDINGS_KEY);
     let list = Array.isArray(stored) ? stored.filter((x) => validHolding(x, pattern)) : [];
     let editing = null;
@@ -263,19 +303,66 @@
       draw();
     });
 
+    // Price for a holding: live during market hours, else the last close. Watchlist stocks
+    // come from the daily data; price-only stocks only from the live job.
+    function priceFor(symbol) {
+      const daily = data.stocks.find((s) => s.symbol === symbol);
+      if (daily) {
+        const q = SH.liveQuote(symbol);
+        if (q) return { price: q.price, prev: q.prev_close, live: q, signal: daily.signal, daily: true };
+        return { price: daily.price, prev: daily.price / (1 + daily.change_pct / 100), live: null, signal: daily.signal, daily: true };
+      }
+      const q = SH.live && SH.live.quotes && SH.live.quotes[symbol];
+      return q ? { price: q.price, prev: q.prev_close, live: q, signal: null, daily: false } : null;
+    }
+
+    // Adds symbols to the live job's price-only list (live_config.json in the repo).
+    function trackButton(symbols, label) {
+      const button = h("button", { type: "button", class: "btn small" }, label);
+      button.addEventListener("click", async () => {
+        const token = SH.token.get();
+        if (!token) {
+          SH.clear(status);
+          status.appendChild(document.createTextNode("Saving needs a GitHub token: set it up once on the "));
+          status.appendChild(h("a", { href: "#/watchlist" }, "Watchlist page"));
+          status.appendChild(document.createTextNode("."));
+          return;
+        }
+        button.disabled = true;
+        status.textContent = "Saving…";
+        const change = (cfg) => ({
+          track: [...new Set((Array.isArray(cfg.track) ? cfg.track : []).concat(symbols))].slice(0, 25),
+          levels: Array.isArray(cfg.levels) ? cfg.levels : [],
+        });
+        try {
+          const result = await SH.updateRepoJson(repo, "live_config.json", change, "track: " + symbols.map(SH.short).join(", "), token);
+          status.textContent = result.ok
+            ? "Saved. Live prices for " + symbols.map(SH.short).join(", ") + " show up within a few minutes."
+            : result.message;
+        } catch (err) {
+          status.textContent = "Couldn't reach GitHub: " + err.message;
+        }
+        button.disabled = false;
+      });
+      return button;
+    }
+
     // ---- table
     function draw() {
       SH.clear(holder);
       if (!list.length) { holder.appendChild(SH.empty("No holdings yet. Add one above.")); return; }
       const rows = list.map((x) => {
-        const s = prices[x.symbol];
+        const s = priceFor(x.symbol);
         const invested = x.qty * x.avg_price;
         const value = s ? x.qty * s.price : null;
-        return { x, s, invested, value, pnl: value == null ? null : value - invested };
+        return { x, s, invested, value, pnl: value == null ? null : value - invested,
+          day: s && s.prev ? x.qty * (s.price - s.prev) : null };
       });
       const tracked = rows.filter((r) => r.s);
+      const untracked = [...new Set(rows.filter((r) => !r.s).map((r) => r.x.symbol))];
       const totalValue = tracked.reduce((sum, r) => sum + r.value, 0);
       const totalInvested = tracked.reduce((sum, r) => sum + r.invested, 0);
+      const totalDay = tracked.reduce((sum, r) => sum + (r.day || 0), 0);
       const totalPnl = totalValue - totalInvested;
       const body = rows.map((r) => {
         const edit = h("button", { type: "button", class: "btn small ghost" }, "Edit");
@@ -288,23 +375,38 @@
           status.textContent = "Deleted " + r.x.symbol + ".";
           draw();
         });
-        const name = r.s ? h("a", { href: SH.stockHref(r.x.symbol) }, SH.short(r.x.symbol))
-          : h("span", null, SH.short(r.x.symbol), " ", addLink(r.x.symbol, "Not tracked: add to watchlist"));
+        let name;
+        if (!r.s) {
+          name = h("span", { class: "sym-cell" }, h("strong", null, SH.short(r.x.symbol)), " ",
+            trackButton([r.x.symbol], "Track live price"), " ", addLink(r.x.symbol, "or add to watchlist"));
+        } else if (r.s.daily) {
+          name = h("a", { href: SH.stockHref(r.x.symbol) }, SH.short(r.x.symbol));
+        } else {
+          name = h("span", null, SH.short(r.x.symbol), " ", h("span", { class: "tag" }, "price only"));
+        }
         const colored = (v, text) => h("span", { class: SH.signClass(v) }, text);
-        return [name, SH.num(r.x.qty, Number.isInteger(r.x.qty) ? 0 : 2), SH.num(r.x.avg_price), r.s ? SH.num(r.s.price) : "–",
+        const last = r.s ? h("span", null, SH.num(r.s.price), r.s.live ? h("span", { class: "muted small" }, " " + r.s.live.time) : null) : "–";
+        return [name, SH.num(r.x.qty, Number.isInteger(r.x.qty) ? 0 : 2), SH.num(r.x.avg_price), last,
           SH.money(r.invested), SH.money(r.value),
+          r.day == null ? "–" : colored(r.day, SH.money(r.day)),
           r.pnl == null ? "–" : colored(r.pnl, SH.money(r.pnl)),
           r.pnl == null ? "–" : colored(r.pnl, SH.pct((r.pnl / r.invested) * 100)),
           r.value == null || !totalValue ? "–" : SH.plainPct((r.value / totalValue) * 100),
-          r.s ? SH.badge(r.s.signal) : "–", h("span", { class: "row-actions" }, edit, remove)];
+          r.s && r.s.signal ? SH.badge(r.s.signal) : "–", h("span", { class: "row-actions" }, edit, remove)];
       });
-      body.push([h("strong", null, "Total (tracked)"), "", "", "", SH.money(totalInvested), SH.money(totalValue),
+      body.push([h("strong", null, "Total"), "", "", "", SH.money(totalInvested), SH.money(totalValue),
+        h("span", { class: SH.signClass(totalDay) }, SH.money(totalDay)),
         h("span", { class: SH.signClass(totalPnl) }, SH.money(totalPnl)),
         totalInvested ? h("span", { class: SH.signClass(totalPnl) }, SH.pct((totalPnl / totalInvested) * 100)) : "–", "", "", ""]);
-      holder.appendChild(SH.table(["Stock", "Qty", "Avg price", "Last", "Invested", "Value", "P/L", "P/L %", "Weight", "Rule signal", ""],
-        body, { numeric: [1, 2, 3, 4, 5, 6, 7, 8] }));
-      if (tracked.length < rows.length) holder.appendChild(note("Totals include only stocks in your watchlist, since only those have prices here."));
-      holder.appendChild(note("Prices are closes from " + SH.date(data.as_of) + (data.final ? "." : " (market still open, not final).")));
+      if (untracked.length > 1) {
+        holder.appendChild(h("div", { class: "controls" }, trackButton(untracked, "Track live prices for all " + untracked.length + " untracked")));
+      }
+      holder.appendChild(SH.table(["Stock", "Qty", "Avg price", "Last", "Invested", "Value", "Today", "P/L", "P/L %", "Weight", "Rule signal", ""],
+        body, { numeric: [1, 2, 3, 4, 5, 6, 7, 8, 9] }));
+      if (untracked.length) {
+        holder.appendChild(note("Totals skip stocks without a price. \"Track live price\" adds a stock to the live job's price-only list: its name becomes public in your repo, but your quantities and prices stay in this browser."));
+      }
+      holder.appendChild(note("Prices are live during market hours (checked every 15 minutes), otherwise the last close. \"Today\" is the change since yesterday's close."));
     }
 
     // ---- backup
@@ -511,6 +613,180 @@
     return out;
   };
 
+  // GitHub token box, shared by the Watchlist and Alerts pages.
+  function tokenPanel(status) {
+    const box = h("div");
+    function draw() {
+      SH.clear(box);
+      if (SH.token.get()) {
+        const forget = h("button", { type: "button", class: "btn small ghost" }, "Forget token");
+        forget.addEventListener("click", () => { SH.token.forget(); status.textContent = "Token removed from this browser."; draw(); });
+        box.appendChild(h("p", null, "A GitHub token is saved in this browser. ", forget));
+        return;
+      }
+      const input = h("input", { type: "password", autocomplete: "off", spellcheck: "false", placeholder: "github_pat_…", "aria-label": "GitHub token" });
+      const keep = h("button", { type: "button", class: "btn" }, "Save token");
+      keep.addEventListener("click", () => {
+        const value = input.value.trim();
+        if (!SH.token.looksValid(value)) { status.textContent = "That doesn't look like a GitHub token (it starts with github_pat_)."; return; }
+        SH.token.set(value);
+        input.value = "";
+        status.textContent = "Token saved in this browser.";
+        draw();
+      });
+      box.appendChild(h("div", { class: "controls" }, input, keep));
+    }
+    draw();
+    return box;
+  }
+
+  // ================================================================== alerts
+  pages.alerts = function (data) {
+    const live = SH.live;
+    const pattern = new RegExp(data.config.symbol_pattern);
+    const repo = repoOf(data);
+    const st = SH.state;
+    if (!st.alertEdits) st.alertEdits = { add: [], remove: [], untrack: [] };
+    const edits = st.alertEdits; // unsaved changes survive page switches
+    const saved = st.savedConfig || { track: (live && live.track) || [], levels: (live && live.levels) || [] };
+    const base = { track: saved.track.slice(), levels: saved.levels.slice() };
+    const fired = {};
+    ((live && live.levels) || []).forEach((l) => { if (l.fired) fired[l.id] = l.fired; });
+    const quote = (symbol) => (live && live.quotes && live.quotes[symbol]) || null;
+    const dirty = () => edits.add.length + edits.remove.length + edits.untrack.length > 0;
+    const addStatus = h("p", { class: "status", role: "status" });
+    const saveStatus = h("p", { class: "status", role: "status" });
+    const levelBox = h("div");
+    const trackBox = h("div");
+
+    function drawLevels() {
+      SH.clear(levelBox);
+      const rows = base.levels.filter((l) => !edits.remove.includes(l.id)).map((l) => ({ l, isNew: false }))
+        .concat(edits.add.map((l) => ({ l, isNew: true })));
+      if (!rows.length) levelBox.appendChild(SH.empty("No price levels yet. Add one below."));
+      else {
+        levelBox.appendChild(SH.table(["Stock", "Alert when", "Now", "Status", ""], rows.map(({ l, isNew }) => {
+          const remove = h("button", { type: "button", class: "btn small ghost" }, "Remove");
+          remove.addEventListener("click", () => {
+            if (isNew) edits.add = edits.add.filter((x) => x.id !== l.id); else edits.remove.push(l.id);
+            addStatus.textContent = "Removed " + l.symbol + " level (not saved yet).";
+            drawLevels();
+          });
+          const hit = fired[l.id];
+          const q = quote(l.symbol);
+          return [SH.short(l.symbol), (l.direction === "above" ? "at or above " : "at or below ") + SH.money(l.price),
+            q ? SH.money(q.price) : "–",
+            isNew ? h("span", { class: "tag" }, "new: not saved") : hit ? "Fired " + SH.dateTime(String(hit.at).replace(" ", "T")) + " at " + SH.money(hit.price) : "Waiting",
+            remove];
+        }), { numeric: [2] }));
+      }
+      if (dirty()) levelBox.appendChild(note("Unsaved changes: press Save alerts below."));
+    }
+
+    function drawTrack() {
+      SH.clear(trackBox);
+      const list = base.track.filter((s) => !edits.untrack.includes(s));
+      if (!list.length) {
+        trackBox.appendChild(SH.empty("Nothing here. On the Holdings page, holdings outside your watchlist get a \"Track live price\" button."));
+        return;
+      }
+      trackBox.appendChild(h("ul", { class: "watch-list" }, list.map((symbol) => {
+        const remove = h("button", { type: "button", class: "btn small ghost" }, "Stop tracking");
+        remove.addEventListener("click", () => { edits.untrack.push(symbol); addStatus.textContent = "Stopped tracking " + symbol + " (not saved yet)."; drawTrack(); drawLevels(); });
+        const q = quote(symbol);
+        return h("li", null, h("span", null, h("strong", null, symbol), " ",
+          h("span", { class: "muted small" }, q ? SH.money(q.price) + " " + SH.pct(q.change_pct) : "price after the next live run")), remove);
+      })));
+    }
+
+    // ---- add a level
+    const symbol = h("input", { list: "alert-symbols", autocomplete: "off", placeholder: "RELIANCE", "aria-label": "Stock symbol" });
+    const options = h("datalist", { id: "alert-symbols" }, data.watchlist.map((s) => h("option", { value: s })));
+    symbol.addEventListener("focus", () => SH.loadSymbols().then((all) => {
+      all.forEach(([s, name]) => { if (!data.watchlist.includes(s)) options.appendChild(h("option", { value: s }, name)); });
+    }).catch(() => {}), { once: true });
+    const direction = h("select", { "aria-label": "When" },
+      h("option", { value: "below" }, "falls to or below"), h("option", { value: "above" }, "rises to or above"));
+    const price = h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", placeholder: "Price in ₹", "aria-label": "Price" });
+    const add = h("button", { type: "button", class: "btn" }, "Add level");
+    add.addEventListener("click", () => {
+      const sym = normaliseSymbol(symbol.value, pattern);
+      const level = Number(price.value);
+      if (!sym || !(level > 0)) { addStatus.textContent = "Enter a valid symbol (like RELIANCE) and a price above 0."; return; }
+      if (base.levels.length - edits.remove.length + edits.add.length >= 50) { addStatus.textContent = "That's the maximum of 50 levels."; return; }
+      edits.add.push({ id: newId(), symbol: sym, direction: direction.value, price: level });
+      const q = quote(sym);
+      const already = q && (direction.value === "above" ? q.price >= level : q.price <= level);
+      addStatus.textContent = "Added " + sym + " (not saved yet)." +
+        (already ? " It's already past that level (now " + SH.money(q.price) + "), so it fires on the next check in market hours." : "");
+      symbol.value = "";
+      price.value = "";
+      drawLevels();
+    });
+
+    // ---- save
+    const save = h("button", { type: "button", class: "btn primary" }, "Save alerts to GitHub");
+    save.addEventListener("click", async () => {
+      const token = SH.token.get();
+      if (!token) { saveStatus.textContent = "Saving needs a GitHub token (paste it above)."; return; }
+      if (!dirty()) { saveStatus.textContent = "Nothing to save."; return; }
+      save.disabled = true;
+      saveStatus.textContent = "Saving…";
+      const change = (cfg) => {
+        const removed = new Set(edits.remove), untracked = new Set(edits.untrack);
+        return {
+          track: (Array.isArray(cfg.track) ? cfg.track : []).filter((s) => !untracked.has(s)),
+          levels: (Array.isArray(cfg.levels) ? cfg.levels : []).filter((l) => !removed.has(l.id)).concat(edits.add),
+        };
+      };
+      const summary = "alerts: +" + edits.add.length + " / -" + edits.remove.length + " levels, -" + edits.untrack.length + " tracked";
+      try {
+        const result = await SH.updateRepoJson(repo, "live_config.json", change, summary, token);
+        if (result.ok) {
+          st.savedConfig = result.value;
+          base.track = result.value.track.slice();
+          base.levels = result.value.levels.slice();
+          edits.add.splice(0); edits.remove.splice(0); edits.untrack.splice(0);
+          saveStatus.textContent = "Saved. The live job picks this up within a few minutes; checks run every 15 minutes in market hours.";
+          drawLevels();
+          drawTrack();
+        } else {
+          saveStatus.textContent = result.message;
+        }
+      } catch (err) {
+        saveStatus.textContent = "Couldn't reach GitHub: " + err.message;
+      }
+      save.disabled = false;
+    });
+
+    const moves = ((live && live.move_levels) || [2, 4, 6]).join("/");
+    const log = live && Array.isArray(live.alerts_today) ? live.alerts_today : [];
+    drawLevels();
+    drawTrack();
+    return [
+      h("h1", null, "Alerts"),
+      card("What the bot sends you",
+        h("ul", null,
+          h("li", null, h("strong", null, "6 PM summary (weekdays): "), "each stock's close, change and signal, the model's calls, the sim agents and a link here."),
+          h("li", null, h("strong", null, "Signal alerts: "), "when a watchlist stock's rule signal would change if the market closed now. Provisional until the close."),
+          h("li", null, h("strong", null, "Big moves: "), "when a watchlist or price-only stock is up or down " + moves + "% on the day."),
+          h("li", null, h("strong", null, "Your price levels: "), "set below. Each level fires once; add it again to re-arm it.")),
+        note("Live checks run every 15 minutes from 9:15 AM to 3:45 PM on weekdays, so alerts can lag by a few minutes and a quick spike between checks can be missed. Each alert is sent once per day.")),
+      card("Today's alerts",
+        !live ? SH.empty("Live tracking starts with the next market session.")
+          : log.length ? h("ul", { class: "alert-log" }, log.map((a) => h("li", null,
+            h("span", { class: "muted" }, a.time + " "), h("span", { class: "tag" }, a.kind), " ", a.text)))
+            : SH.empty("No alerts yet today."),
+        live ? h("p", { class: "muted small" }, "Telegram: " + live.telegram + " · last check " + SH.dateTime(live.updated_at)) : null),
+      card("Price levels", levelBox,
+        h("div", { class: "controls" }, symbol, options, direction, price, add), addStatus),
+      card("Price-only list", trackBox,
+        note("Stocks you hold but don't want in the watchlist: live price, big-move alerts and P/L on the Holdings page, but no signals, sim trading or model.")),
+      card("Save", tokenPanel(saveStatus), save, saveStatus,
+        h("p", { class: "muted small" }, "First time? The token steps are on the ", h("a", { href: "#/watchlist" }, "Watchlist page"), ".")),
+    ];
+  };
+
   // =============================================================== watchlist
   pages.watchlist = function (data, _arg, params) {
     const cfg = data.config;
@@ -592,27 +868,7 @@
     });
 
     // ---- token + save
-    const tokenBox = h("div");
-    function drawToken() {
-      SH.clear(tokenBox);
-      if (SH.token.get()) {
-        const forget = h("button", { type: "button", class: "btn small ghost" }, "Forget token");
-        forget.addEventListener("click", () => { SH.token.forget(); saveStatus.textContent = "Token removed from this browser."; drawToken(); });
-        tokenBox.appendChild(h("p", null, "A GitHub token is saved in this browser. ", forget));
-        return;
-      }
-      const input = h("input", { type: "password", id: "gh-token", autocomplete: "off", spellcheck: "false", placeholder: "github_pat_…" });
-      const keep = h("button", { type: "button", class: "btn" }, "Save token");
-      keep.addEventListener("click", () => {
-        const value = input.value.trim();
-        if (!SH.token.looksValid(value)) { saveStatus.textContent = "That doesn't look like a GitHub token (it starts with github_pat_)."; return; }
-        SH.token.set(value);
-        input.value = "";
-        saveStatus.textContent = "Token saved in this browser.";
-        drawToken();
-      });
-      tokenBox.appendChild(h("div", { class: "controls" }, h("label", { for: "gh-token" }, "GitHub token"), input, keep));
-    }
+    const tokenBox = tokenPanel(saveStatus);
     const saveButton = h("button", { type: "button", class: "btn primary" }, "Save watchlist to GitHub");
     saveButton.addEventListener("click", async () => {
       const token = SH.token.get();
@@ -643,7 +899,6 @@
       if (symbol) addSymbol(symbol); else listStatus.textContent = "“" + added + "” isn't a valid symbol.";
     }
     drawList();
-    drawToken();
     return [
       h("h1", null, "Watchlist"),
       note("Up to " + cfg.max_symbols + " stocks. Changes apply after you save: GitHub re-runs the update and refreshes this site in about 2 minutes."),

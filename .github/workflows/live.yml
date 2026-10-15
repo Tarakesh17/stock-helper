@@ -1,0 +1,61 @@
+name: live
+
+on:
+  schedule:
+    # every 15 minutes, Mon-Fri, 08:37-16:22 IST (live.py skips anything outside 09:10-16:00);
+    # minutes 7/22/37/52 avoid the busy top of the hour on GitHub
+    - cron: "7,22,37,52 3-10 * * 1-5"
+  push:
+    branches: [main]
+    paths: [live_config.json]  # new price levels / tracked stocks show up right away
+  workflow_dispatch:
+
+permissions:
+  contents: write  # publish live.json to the live-data branch
+
+concurrency:
+  group: live
+  cancel-in-progress: true
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TZ: Asia/Kolkata
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Get the previous live state
+        run: |
+          mkdir -p "$RUNNER_TEMP/live"
+          if git fetch -q --depth=1 origin live-data; then
+            git show FETCH_HEAD:state.json > "$RUNNER_TEMP/live/state.json" || true
+          fi
+
+      - name: Live prices and alerts
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python live.py
+
+      # live-data holds a single commit that is replaced every run, so the
+      # frequent updates never pile up in main's history
+      - name: Publish to the live-data branch
+        run: |
+          out="$RUNNER_TEMP/live"
+          [ -f "$out/live.json" ] || { echo "nothing to publish"; exit 0; }
+          export GIT_INDEX_FILE="$RUNNER_TEMP/live-index"
+          export GIT_AUTHOR_NAME="github-actions[bot]" GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com"
+          export GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME" GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+          git read-tree --empty
+          for file in live.json state.json; do
+            git update-index --add --cacheinfo "100644,$(git hash-object -w "$out/$file"),$file"
+          done
+          commit=$(git commit-tree "$(git write-tree)" -m "live $(date '+%F %H:%M')")
+          git push -q --force origin "$commit:refs/heads/live-data"

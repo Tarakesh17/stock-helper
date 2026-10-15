@@ -5,6 +5,7 @@ on:
     - cron: "30 12 * * 1-5"  # 18:00 IST (12:30 UTC), Mon-Fri
   push:
     branches: [main]         # e.g. a watchlist change saved from the website
+    paths-ignore: [live_config.json]  # alert/tracking edits only need the live job
   workflow_dispatch:
     inputs:
       telegram:

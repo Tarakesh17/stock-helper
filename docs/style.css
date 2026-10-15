@@ -176,3 +176,12 @@ details summary { cursor: pointer; color: var(--accent); font-size: 14px; }
 .bar.neg { right: 50%; background: var(--down); }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; scroll-behavior: auto !important; } }
+
+/* live prices */
+.pill.on { background: var(--buy-bg); color: var(--up); }
+.live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--up); margin-right: 5px; vertical-align: middle; }
+.live-tag { font-size: 12px; color: var(--up); white-space: nowrap; }
+.provisional { color: var(--muted); font-style: italic; }
+.alert-log { list-style: none; padding: 0; margin: 6px 0; }
+.alert-log li { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); }
