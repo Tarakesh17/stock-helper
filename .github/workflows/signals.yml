@@ -1,0 +1,76 @@
+name: stock-helper
+
+on:
+  schedule:
+    - cron: "30 12 * * 1-5"  # 18:00 IST (12:30 UTC), Mon-Fri
+  push:
+    branches: [main]         # e.g. a watchlist change saved from the website
+  workflow_dispatch:
+    inputs:
+      telegram:
+        description: "Also send the Telegram message"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write  # commit state/ back to the repo
+  pages: write     # publish the website
+  id-token: write
+
+concurrency:
+  group: stock-helper
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Kolkata
+    outputs:
+      site: ${{ steps.check.outputs.site }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - run: pip install -r requirements.txt
+
+      - name: Update signals, model, sim agents and website data
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SEND_TELEGRAM: ${{ github.event_name == 'schedule' || inputs.telegram }}
+        run: |
+          if [ "$SEND_TELEGRAM" = "true" ]; then python run.py; else python run.py --no-telegram; fi
+
+      - name: Save state to the repo
+        if: ${{ !cancelled() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state docs/symbols.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data $(date +%F)"
+          git pull --rebase --quiet
+          git push
+
+      - id: check
+        if: ${{ !cancelled() }}
+        run: echo "site=$([ -f docs/data.json ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-pages-artifact@v5
+        if: ${{ !cancelled() && steps.check.outputs.site == 'true' }}
+        with:
+          path: docs
+
+  deploy:
+    needs: update
+    if: ${{ !cancelled() && needs.update.outputs.site == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
