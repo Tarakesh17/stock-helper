@@ -1,0 +1,58 @@
+{
+ "version": 1,
+ "start_date": "2026-10-15",
+ "last_date": "2026-10-15",
+ "cost_pct": 0.2,
+ "benchmark": {
+  "symbol": "^NSEI",
+  "closes": [
+   [
+    "2026-10-15",
+    22997.349609375
+   ]
+  ]
+ },
+ "agents": {
+  "rules": {
+   "cash": 100000.0,
+   "positions": {},
+   "orders": [],
+   "curve": [
+    [
+     "2026-10-15",
+     100000.0
+    ]
+   ],
+   "trades": [],
+   "counts": {
+    "trades": 0,
+    "closed": 0,
+    "wins": 0
+   }
+  },
+  "model": {
+   "cash": 100000.0,
+   "positions": {},
+   "orders": [
+    {
+     "date": "2026-10-15",
+     "symbol": "RELIANCE.NS",
+     "side": "BUY",
+     "reason": "up-chance 57%"
+    }
+   ],
+   "curve": [
+    [
+     "2026-10-15",
+     100000.0
+    ]
+   ],
+   "trades": [],
+   "counts": {
+    "trades": 0,
+    "closed": 0,
+    "wins": 0
+   }
+  }
+ }
+}
