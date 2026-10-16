@@ -105,7 +105,13 @@
     if (!SH.state.symbols) {
       SH.state.symbols = fetch("symbols.json")
         .then((r) => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-        .then((list) => (Array.isArray(list) ? list.filter((x) => Array.isArray(x) && typeof x[0] === "string" && typeof x[1] === "string") : []))
+        .then((list) => {
+          const clean = (Array.isArray(list) ? list : [])
+            .filter((x) => Array.isArray(x) && typeof x[0] === "string" && typeof x[1] === "string")
+            .map((x) => [x[0], x[1], x[1].toUpperCase()]); // capitals once, so searching stays fast
+          SH.state.symbolList = clean;
+          return clean;
+        })
         .catch((err) => { SH.state.symbols = null; throw err; });
     }
     return SH.state.symbols;

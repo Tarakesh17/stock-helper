@@ -125,7 +125,7 @@ input[type="search"], input[type="password"], input[type="number"], input[type="
 .controls input { flex: 1 1 220px; width: auto; }
 .check { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; white-space: nowrap; }
 .form-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); align-items: end; }
-.field span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+.field > span, .field > label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 2px; }
 .form-grid .controls { margin: 0; }
 .file { position: absolute; width: 1px; height: 1px; opacity: 0; }
 label.btn { position: relative; }
@@ -185,3 +185,14 @@ details summary { cursor: pointer; color: var(--accent); font-size: 14px; }
 .alert-log { list-style: none; padding: 0; margin: 6px 0; }
 .alert-log li { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
 select { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); }
+
+/* stock suggestions (replaces the slow native datalist) */
+.suggest-wrap { position: relative; }
+.suggest-wrap input, .controls .suggest-wrap input { width: 100%; }
+.controls > .suggest-wrap { flex: 1 1 220px; }
+.suggest { position: absolute; left: 0; right: 0; top: calc(100% + 2px); z-index: 4; margin: 0; padding: 4px 0; list-style: none;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 14px rgba(0, 0, 0, .18); max-height: 60vh; overflow-y: auto; }
+.suggest[hidden] { display: none; }
+.suggest li { display: flex; gap: 8px; align-items: baseline; padding: 10px 12px; cursor: pointer; font-size: 14px; }
+.suggest li .muted { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suggest li.active, .suggest li:hover { background: var(--hold-bg); }

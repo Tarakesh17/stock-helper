@@ -261,18 +261,17 @@
 
     // ---- form
     const field = (label, input) => h("label", { class: "field" }, h("span", null, label), input);
-    const symbol = h("input", { list: "holding-symbols", autocomplete: "off", placeholder: "RELIANCE", name: "symbol" });
-    const options = h("datalist", { id: "holding-symbols" }, data.watchlist.map((s) => h("option", { value: s })));
-    symbol.addEventListener("focus", () => SH.loadSymbols().then((all) => {
-      all.forEach(([s, name]) => { if (!data.watchlist.includes(s)) options.appendChild(h("option", { value: s }, name)); });
-    }).catch(() => {}), { once: true });
     const qty = h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", name: "qty" });
+    const known = data.stocks.map((s) => [s.symbol, s.name]);
+    const picker = SH.symbolInput({ name: "symbol", placeholder: "RELIANCE" }, known, () => qty.focus());
+    const symbol = picker.input;
     const price = h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", name: "avg_price" });
     const date = h("input", { type: "date", name: "buy_date" });
     const submit = h("button", { type: "submit", class: "btn primary" }, "Add holding");
     const cancel = h("button", { type: "button", class: "btn ghost hidden" }, "Cancel edit");
     const form = h("form", { class: "form-grid", novalidate: true },
-      field("Stock symbol", symbol), options, field("Quantity", qty), field("Average buy price (₹)", price),
+      h("div", { class: "field" }, h("label", { for: symbol.id }, "Stock symbol"), picker.box),
+      field("Quantity", qty), field("Average buy price (₹)", price),
       field("Buy date (optional)", date), h("div", { class: "controls" }, submit, cancel));
 
     function resetForm() {
@@ -700,14 +699,12 @@
     }
 
     // ---- add a level
-    const symbol = h("input", { list: "alert-symbols", autocomplete: "off", placeholder: "RELIANCE", "aria-label": "Stock symbol" });
-    const options = h("datalist", { id: "alert-symbols" }, data.watchlist.map((s) => h("option", { value: s })));
-    symbol.addEventListener("focus", () => SH.loadSymbols().then((all) => {
-      all.forEach(([s, name]) => { if (!data.watchlist.includes(s)) options.appendChild(h("option", { value: s }, name)); });
-    }).catch(() => {}), { once: true });
     const direction = h("select", { "aria-label": "When" },
       h("option", { value: "below" }, "falls to or below"), h("option", { value: "above" }, "rises to or above"));
     const price = h("input", { type: "number", min: "0", step: "any", inputmode: "decimal", placeholder: "Price in ₹", "aria-label": "Price" });
+    const picker = SH.symbolInput({ placeholder: "RELIANCE", "aria-label": "Stock symbol" },
+      data.stocks.map((s) => [s.symbol, s.name]), () => direction.focus());
+    const symbol = picker.input;
     const add = h("button", { type: "button", class: "btn" }, "Add level");
     add.addEventListener("click", () => {
       const sym = normaliseSymbol(symbol.value, pattern);
@@ -779,7 +776,7 @@
             : SH.empty("No alerts yet today."),
         live ? h("p", { class: "muted small" }, "Telegram: " + live.telegram + " · last check " + SH.dateTime(live.updated_at)) : null),
       card("Price levels", levelBox,
-        h("div", { class: "controls" }, symbol, options, direction, price, add), addStatus),
+        h("div", { class: "controls" }, picker.box, direction, price, add), addStatus),
       card("Price-only list", trackBox,
         note("Stocks you hold but don't want in the watchlist: live price, big-move alerts and P/L on the Holdings page, but no signals, sim trading or model.")),
       card("Save", tokenPanel(saveStatus), save, saveStatus,
@@ -847,12 +844,7 @@
       SH.clear(results);
       const q = query.trim().toUpperCase();
       if (!q) return;
-      const starts = [], contains = [];
-      for (const [symbol, name] of all) {
-        if (symbol.startsWith(q)) starts.push([symbol, name]);
-        else if (name.toUpperCase().includes(q)) contains.push([symbol, name]);
-      }
-      const top = starts.concat(contains).slice(0, 20);
+      const top = SH.matchSymbols(all, q, 20);
       const rows = top.map(([symbol, name]) => resultRow(symbol, name));
       const typed = normaliseSymbol(q, pattern);
       if (typed && !top.some(([symbol]) => symbol === typed)) rows.unshift(resultRow(typed, "add exactly what you typed"));

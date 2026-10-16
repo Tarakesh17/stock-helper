@@ -53,7 +53,7 @@
     loadLive().then((changed) => {
       if (!changed) return;
       header(SH.data);
-      if (!busy()) render();
+      if (!busy()) render(true);
     });
   }
 
@@ -66,7 +66,8 @@
     return { page: pieces[0] || "overview", arg: pieces[1] || null, params: new URLSearchParams(query || "") };
   }
 
-  function render() {
+  // keepScroll: redraw in place (live refresh) instead of jumping to the top (new page)
+  function render(keepScroll) {
     const route = parseHash();
     const page = SH.pages[route.page];
     const navKey = route.page === "stock" ? "overview" : route.page;
@@ -85,7 +86,7 @@
       app.appendChild(h("div", { class: "banner warn" }, "Something went wrong drawing this page: " + err.message));
     }
     document.title = (route.page === "stock" && route.arg ? SH.short(route.arg) : TITLES[route.page] || "Stock helper") + " · Stock helper";
-    document.documentElement.scrollTop = 0;
+    if (keepScroll !== true) document.documentElement.scrollTop = 0;
   }
 
   function header(data) {
@@ -116,7 +117,7 @@
     }
     await loadLive();
     header(SH.data);
-    window.addEventListener("hashchange", render);
+    window.addEventListener("hashchange", () => render());
     render();
     setInterval(poll, LIVE_EVERY);
     document.addEventListener("visibilitychange", poll);
