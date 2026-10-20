@@ -1,7 +1,7 @@
 {
  "version": 1,
  "start_date": "2026-10-15",
- "last_date": "2026-10-16",
+ "last_date": "2026-10-19",
  "cost_pct": 0.2,
  "benchmark": {
   "symbol": "^NSEI",
@@ -13,6 +13,10 @@
    [
     "2026-10-16",
     23146.150390625
+   ],
+   [
+    "2026-10-19",
+    22888.94921875
    ]
   ]
  },
@@ -29,6 +33,10 @@
     [
      "2026-10-16",
      100000.0
+    ],
+    [
+     "2026-10-19",
+     100000.0
     ]
    ],
    "trades": [],
@@ -39,27 +47,45 @@
    }
   },
   "model": {
-   "cash": 67129.39,
+   "cash": 2652.0941699218783,
    "positions": {
     "RELIANCE.NS": {
      "qty": 27,
      "cost": 32870.61,
      "since": "2026-10-16",
-     "last": 1211.199951171875
+     "last": 1202.0
+    },
+    "INFY.NS": {
+     "qty": 28,
+     "cost": 32459.387830078125,
+     "since": "2026-10-19",
+     "last": 1130.699951171875
+    },
+    "TCS.NS": {
+     "qty": 13,
+     "cost": 32017.908,
+     "since": "2026-10-19",
+     "last": 2460.89990234375
     }
    },
    "orders": [
     {
-     "date": "2026-10-16",
+     "date": "2026-10-19",
      "symbol": "INFY.NS",
-     "side": "BUY",
-     "reason": "up-chance 67%"
+     "side": "SELL",
+     "reason": "up-chance 33%"
     },
     {
-     "date": "2026-10-16",
+     "date": "2026-10-19",
+     "symbol": "RELIANCE.NS",
+     "side": "SELL",
+     "reason": "up-chance 45%"
+    },
+    {
+     "date": "2026-10-19",
      "symbol": "TCS.NS",
-     "side": "BUY",
-     "reason": "up-chance 70%"
+     "side": "SELL",
+     "reason": "up-chance 32%"
     }
    ],
    "curve": [
@@ -70,6 +96,10 @@
     [
      "2026-10-16",
      99831.79
+    ],
+    [
+     "2026-10-19",
+     98757.39
     ]
    ],
    "trades": [
@@ -82,10 +112,30 @@
      "value": 32870.61,
      "pnl": null,
      "reason": "up-chance 57%"
+    },
+    {
+     "date": "2026-10-19",
+     "symbol": "INFY.NS",
+     "side": "BUY",
+     "qty": 28,
+     "price": 1156.95,
+     "value": 32459.39,
+     "pnl": null,
+     "reason": "up-chance 67%"
+    },
+    {
+     "date": "2026-10-19",
+     "symbol": "TCS.NS",
+     "side": "BUY",
+     "qty": 13,
+     "price": 2458.0,
+     "value": 32017.91,
+     "pnl": null,
+     "reason": "up-chance 70%"
     }
    ],
    "counts": {
-    "trades": 1,
+    "trades": 3,
     "closed": 0,
     "wins": 0
    }
