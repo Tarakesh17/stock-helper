@@ -1,7 +1,7 @@
 {
  "version": 1,
  "start_date": "2026-10-15",
- "last_date": "2026-10-21",
+ "last_date": "2026-10-22",
  "cost_pct": 0.2,
  "benchmark": {
   "symbol": "^NSEI",
@@ -21,6 +21,10 @@
    [
     "2026-10-21",
     22811.349609375
+   ],
+   [
+    "2026-10-22",
+    22687.650390625
    ]
   ]
  },
@@ -45,6 +49,10 @@
     [
      "2026-10-21",
      100000.0
+    ],
+    [
+     "2026-10-22",
+     100000.0
     ]
    ],
    "trades": [],
@@ -55,20 +63,33 @@
    }
   },
   "model": {
-   "cash": 99809.1898876953,
-   "positions": {},
+   "cash": 34242.31788769531,
+   "positions": {
+    "INFY.NS": {
+     "qty": 28,
+     "cost": 32741.352,
+     "since": "2026-10-22",
+     "last": 1153.3499755859375
+    },
+    "TCS.NS": {
+     "qty": 13,
+     "cost": 32825.52,
+     "since": "2026-10-22",
+     "last": 2506.89990234375
+    }
+   },
    "orders": [
     {
-     "date": "2026-10-21",
+     "date": "2026-10-22",
      "symbol": "INFY.NS",
-     "side": "BUY",
-     "reason": "up-chance 56%"
+     "side": "SELL",
+     "reason": "up-chance 44%"
     },
     {
-     "date": "2026-10-21",
+     "date": "2026-10-22",
      "symbol": "TCS.NS",
-     "side": "BUY",
-     "reason": "up-chance 55%"
+     "side": "SELL",
+     "reason": "up-chance 34%"
     }
    ],
    "curve": [
@@ -87,6 +108,10 @@
     [
      "2026-10-21",
      99809.19
+    ],
+    [
+     "2026-10-22",
+     99125.82
     ]
    ],
    "trades": [
@@ -149,10 +174,30 @@
      "value": 32227.42,
      "pnl": 209.51,
      "reason": "up-chance 32%"
+    },
+    {
+     "date": "2026-10-22",
+     "symbol": "INFY.NS",
+     "side": "BUY",
+     "qty": 28,
+     "price": 1167.0,
+     "value": 32741.35,
+     "pnl": null,
+     "reason": "up-chance 56%"
+    },
+    {
+     "date": "2026-10-22",
+     "symbol": "TCS.NS",
+     "side": "BUY",
+     "qty": 13,
+     "price": 2520.0,
+     "value": 32825.52,
+     "pnl": null,
+     "reason": "up-chance 55%"
     }
    ],
    "counts": {
-    "trades": 6,
+    "trades": 8,
     "closed": 3,
     "wins": 1
    }
