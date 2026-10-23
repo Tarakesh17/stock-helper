@@ -1,7 +1,7 @@
 {
  "version": 1,
  "start_date": "2026-10-15",
- "last_date": "2026-10-22",
+ "last_date": "2026-10-23",
  "cost_pct": 0.2,
  "benchmark": {
   "symbol": "^NSEI",
@@ -25,6 +25,10 @@
    [
     "2026-10-22",
     22687.650390625
+   ],
+   [
+    "2026-10-23",
+    22600.0
    ]
   ]
  },
@@ -53,6 +57,10 @@
     [
      "2026-10-22",
      100000.0
+    ],
+    [
+     "2026-10-23",
+     100000.0
     ]
    ],
    "trades": [],
@@ -63,33 +71,20 @@
    }
   },
   "model": {
-   "cash": 34242.31788769531,
-   "positions": {
-    "INFY.NS": {
-     "qty": 28,
-     "cost": 32741.352,
-     "since": "2026-10-22",
-     "last": 1153.3499755859375
-    },
-    "TCS.NS": {
-     "qty": 13,
-     "cost": 32825.52,
-     "since": "2026-10-22",
-     "last": 2506.89990234375
-    }
-   },
+   "cash": 100729.07788769531,
+   "positions": {},
    "orders": [
     {
-     "date": "2026-10-22",
+     "date": "2026-10-23",
      "symbol": "INFY.NS",
-     "side": "SELL",
-     "reason": "up-chance 44%"
+     "side": "BUY",
+     "reason": "up-chance 66%"
     },
     {
-     "date": "2026-10-22",
+     "date": "2026-10-23",
      "symbol": "TCS.NS",
-     "side": "SELL",
-     "reason": "up-chance 34%"
+     "side": "BUY",
+     "reason": "up-chance 58%"
     }
    ],
    "curve": [
@@ -112,6 +107,10 @@
     [
      "2026-10-22",
      99125.82
+    ],
+    [
+     "2026-10-23",
+     100729.08
     ]
    ],
    "trades": [
@@ -194,12 +193,32 @@
      "value": 32825.52,
      "pnl": null,
      "reason": "up-chance 55%"
+    },
+    {
+     "date": "2026-10-23",
+     "symbol": "INFY.NS",
+     "side": "SELL",
+     "qty": 28,
+     "price": 1187.0,
+     "value": 33169.53,
+     "pnl": 428.18,
+     "reason": "up-chance 44%"
+    },
+    {
+     "date": "2026-10-23",
+     "symbol": "TCS.NS",
+     "side": "SELL",
+     "qty": 13,
+     "price": 2568.0,
+     "value": 33317.23,
+     "pnl": 491.71,
+     "reason": "up-chance 34%"
     }
    ],
    "counts": {
-    "trades": 8,
-    "closed": 3,
-    "wins": 1
+    "trades": 10,
+    "closed": 5,
+    "wins": 3
    }
   }
  }
