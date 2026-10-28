@@ -1,7 +1,7 @@
 {
  "version": 1,
  "start_date": "2026-10-15",
- "last_date": "2026-10-27",
+ "last_date": "2026-10-28",
  "cost_pct": 0.2,
  "benchmark": {
   "symbol": "^NSEI",
@@ -37,21 +37,25 @@
    [
     "2026-10-27",
     22749.75
+   ],
+   [
+    "2026-10-28",
+    22698.849609375
    ]
   ]
  },
  "agents": {
   "rules": {
-   "cash": 100000.0,
-   "positions": {},
-   "orders": [
-    {
-     "date": "2026-10-27",
-     "symbol": "TCS.NS",
-     "side": "BUY",
-     "reason": "BUY signal"
+   "cash": 68099.326,
+   "positions": {
+    "TCS.NS": {
+     "qty": 13,
+     "cost": 31900.674,
+     "since": "2026-10-28",
+     "last": 2460.0
     }
-   ],
+   },
+   "orders": [],
    "curve": [
     [
      "2026-10-15",
@@ -84,11 +88,26 @@
     [
      "2026-10-27",
      100000.0
+    ],
+    [
+     "2026-10-28",
+     100079.33
     ]
    ],
-   "trades": [],
+   "trades": [
+    {
+     "date": "2026-10-28",
+     "symbol": "TCS.NS",
+     "side": "BUY",
+     "qty": 13,
+     "price": 2449.0,
+     "value": 31900.67,
+     "pnl": null,
+     "reason": "BUY signal"
+    }
+   ],
    "counts": {
-    "trades": 0,
+    "trades": 1,
     "closed": 0,
     "wins": 0
    }
@@ -100,16 +119,29 @@
      "qty": 30,
      "cost": 33516.9,
      "since": "2026-10-26",
-     "last": 1163.0
+     "last": 1123.1500244140625
     },
     "TCS.NS": {
      "qty": 13,
      "cost": 32565.0,
      "since": "2026-10-26",
-     "last": 2496.89990234375
+     "last": 2460.0
     }
    },
-   "orders": [],
+   "orders": [
+    {
+     "date": "2026-10-28",
+     "symbol": "RELIANCE.NS",
+     "side": "BUY",
+     "reason": "up-chance 65%"
+    },
+    {
+     "date": "2026-10-28",
+     "symbol": "TCS.NS",
+     "side": "SELL",
+     "reason": "up-chance 33%"
+    }
+   ],
    "curve": [
     [
      "2026-10-15",
@@ -142,6 +174,10 @@
     [
      "2026-10-27",
      101996.88
+    ],
+    [
+     "2026-10-28",
+     100321.68
     ]
    ],
    "trades": [
